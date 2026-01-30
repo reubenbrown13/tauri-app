@@ -1,5 +1,5 @@
 use std::{ fs::File, thread::JoinHandle, io::BufReader, sync::Arc};
-use rodio::{OutputStream, Sink, Source, Decoder};
+use rodio::{OutputStreamBuilder, Sink, Source, Decoder};
 use tauri::State;
 
 #[derive(Clone)]
@@ -14,8 +14,8 @@ pub fn play_ringtone(path: String, state: State<AudioState>) -> Result<(), Strin
     let thread_handle_arc = state.thread_handle.clone();
 
     *thread_handle_arc.lock().unwrap() = Some(std::thread::spawn(move || {
-        let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-        let sink = Sink::try_new(&stream_handle).unwrap();
+        let stream_handle = OutputStreamBuilder::open_default_stream().expect("open default audio stream");
+        let sink = Sink::connect_new(&stream_handle.mixer());
         let file =  BufReader::new(File::open(&path).unwrap());
         let source = Decoder::new(file).unwrap();
         sink.append(source.repeat_infinite());

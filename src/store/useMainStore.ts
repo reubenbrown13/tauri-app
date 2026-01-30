@@ -31,7 +31,7 @@ export const useMainStore = create<MainStore>(set => ({
 
     gridElements: [],
     addGridElement: (element) => set(state => ({ gridElements: [ ...state.gridElements, element ]})),
-    removeGridElement: (id) => set(state => ({ gridElements: state.gridElements.filter(element => element.props.id !== id) })),
+    removeGridElement: (id) => set(state => ({ gridElements: state.gridElements.filter(element => typeof element.props !== 'undefined') })),
     clearGrid: () => set({ gridElements: [] }),
 
     autoClickerLimit: 1,
