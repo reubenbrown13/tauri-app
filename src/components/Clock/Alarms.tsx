@@ -5,9 +5,7 @@ import genUid from "light-uid"
 import { FrequencyInput } from "./FrequencyInput"
 import { AudioInput } from "./AudioInput"
 import { invoke } from "@tauri-apps/api/core"
-import { BaseDirectory, copyFile, remove } from "@tauri-apps/plugin-fs"
-import { message } from '@tauri-apps/plugin-dialog';
-import { debug } from '@tauri-apps/plugin-log';
+import { BaseDirectory, remove } from "@tauri-apps/plugin-fs"
 import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification"
 import * as path from '@tauri-apps/api/path'
 import Database from "@tauri-apps/plugin-sql"
@@ -78,8 +76,6 @@ export function Alarms({ clockId, updateData, storedAlarms }: { clockId: string,
         } else {
             filePath = newAlarmFilePath
         }
-        //await message(`File not found${filePath}`, { title: 'Tauri', kind: 'error' });
-        //await debug(`File not found${filePath}`);
         
 
         const newAlarm: Alarm = { id: genUid(), clockId: clockId, label: newLabel, time: newTime, postponedTime: null, active: false, frequency: newAlarmFrequency, ringtone: filePath }
@@ -100,8 +96,6 @@ export function Alarms({ clockId, updateData, storedAlarms }: { clockId: string,
         } else {
             filePath = editAlarmFilePath
         }
-        //await message(`File not found${filePath}`, { title: 'Tauri', kind: 'error' });
-        //await debug(`File not found${filePath}`);
 
         const newAlarm = { label: newLabel, time: newTime, frequency: alarmFrequency, ringtone: filePath }
         setAlarms(prev => prev.map(a => a.id === alarm.id ? { ...alarm, ...newAlarm } : alarm))
