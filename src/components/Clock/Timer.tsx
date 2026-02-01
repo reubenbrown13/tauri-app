@@ -96,14 +96,15 @@ export function Timer({ updateData, clockId, storedRingtone }: { storedRingtone?
 
             const fullPath = await open({ filters: [ { name: "Audio", extensions: [ "wav", "mp3", "ogg", "flac" ] } ] })
             if(!fullPath) return setRingtonePath('alarm-default.mp3')
-            const path = fullPath.split("\\").pop() || ''
-            setRingtonePath(path)
-
-            const name = path.split(".")[0]
+            //const path = fullPath.split("\\").pop() || ''
+            const newPath = await path.basename(fullPath)|| ''
+            setRingtonePath(newPath)
+            
+            const name = newPath.split(".")[0]
             if(!name) return
             setRingtoneName(name)
 
-            await copyFile(fullPath, path , { toPathBaseDir: BaseDirectory.AppData })
+            await copyFile(fullPath, newPath , { toPathBaseDir: BaseDirectory.AppData })
 
             if(!db) db = await Database.load('sqlite:data.db')
             const remainingClocks: Clock[] = await db.select("SELECT * FROM clocks WHERE id NOT LIKE $1", [clockId])

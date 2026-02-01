@@ -2,12 +2,12 @@ use enigo::{Button, Direction, Enigo, Mouse, Settings};
 use inputbot::KeybdKey;
 use std::{
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
     time::Duration,
 };
-use tauri::{self, async_runtime::TokioJoinHandle, AppHandle, Emitter, State};
+use tauri::{self, AppHandle, Emitter, State, async_runtime::TokioJoinHandle};
 use tokio::task;
 
 #[derive(Debug, Clone, Copy)]
@@ -125,7 +125,10 @@ fn string_to_keybdkey(key: &str) -> KeybdKey {
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn start_clicker<'a>(state: State<'a, ClickerState>, app: AppHandle) -> Result<(), String> {
+pub async fn start_clicker<'a>(
+    state: State<'a, ClickerState>,
+    app: AppHandle,
+) -> Result<(), String> {
     state.running.lock().unwrap().store(true, Ordering::SeqCst);
     app.emit("clicker_state", true).unwrap();
 
@@ -133,7 +136,12 @@ pub async fn start_clicker<'a>(state: State<'a, ClickerState>, app: AppHandle) -
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn update_clicker_state<'a>(state: State<'a, ClickerState>, interval: u64, button: String, click_type: String) -> Result<(), String> {
+pub async fn update_clicker_state<'a>(
+    state: State<'a, ClickerState>,
+    interval: u64,
+    button: String,
+    click_type: String,
+) -> Result<(), String> {
     let interval_arc = state.interval.clone();
     let button_arc = state.button.clone();
     let click_type_arc = state.click_type.clone();
@@ -187,7 +195,9 @@ pub async fn update_clicker_state<'a>(state: State<'a, ClickerState>, interval: 
                         }
                     },
                     MouseButton::Middle => match click_type {
-                        ClickType::Single => enigo.button(Button::Middle, Direction::Click).unwrap(),
+                        ClickType::Single => {
+                            enigo.button(Button::Middle, Direction::Click).unwrap()
+                        }
                         ClickType::Double => {
                             enigo.button(Button::Middle, Direction::Click).unwrap();
                             enigo.button(Button::Middle, Direction::Click).unwrap();
@@ -216,7 +226,7 @@ pub async fn change_trigger_key<'a>(
 
     let new_key = string_to_keybdkey(&trigger_key);
     *trigger_key_arc.lock().await = new_key;
-    
+
     new_key.unbind();
     new_key.bind(move || {
         if KeybdKey::LAltKey.is_pressed() {
@@ -234,7 +244,10 @@ pub async fn change_trigger_key<'a>(
 }
 
 #[tauri::command]
-pub async fn stop_clicker<'a>(state: State<'a, ClickerState>, app: AppHandle) -> Result<(), String> {
+pub async fn stop_clicker<'a>(
+    state: State<'a, ClickerState>,
+    app: AppHandle,
+) -> Result<(), String> {
     println!("stop");
     state.running.lock().unwrap().store(false, Ordering::SeqCst);
     app.emit("clicker_state", false).unwrap();
@@ -243,7 +256,7 @@ pub async fn stop_clicker<'a>(state: State<'a, ClickerState>, app: AppHandle) ->
 }
 
 #[tauri::command]
-pub async fn innit_clicker(state: State<'_, ClickerState>, app: AppHandle ) -> Result<(), String> {
+pub async fn innit_clicker(state: State<'_, ClickerState>, app: AppHandle) -> Result<(), String> {
     let running_arc = state.running.clone();
     let running_arc_clone = running_arc.clone();
     let thread_handle_arc = state.thread_handle.clone();
@@ -268,7 +281,10 @@ pub async fn innit_clicker(state: State<'_, ClickerState>, app: AppHandle ) -> R
     });
 
     *input_events_handle_arc.lock().await = Some(task::spawn(async move {
-        if INPUT_EVENTS_RUNNING.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
+        if INPUT_EVENTS_RUNNING
+            .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .is_ok()
+        {
             inputbot::handle_input_events();
         }
     }));
@@ -307,7 +323,9 @@ pub async fn innit_clicker(state: State<'_, ClickerState>, app: AppHandle ) -> R
                         }
                     },
                     MouseButton::Middle => match click_type {
-                        ClickType::Single => enigo.button(Button::Middle, Direction::Click).unwrap(),
+                        ClickType::Single => {
+                            enigo.button(Button::Middle, Direction::Click).unwrap()
+                        }
                         ClickType::Double => {
                             enigo.button(Button::Middle, Direction::Click).unwrap();
                             enigo.button(Button::Middle, Direction::Click).unwrap();

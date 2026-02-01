@@ -29,4 +29,7 @@ inputbot = "0.6.0"
 tokio = "1.49.0"
 rodio = "0.21.1"
 zip = "7.2.0"
+tauri-plugin-process = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-log = "2"
 

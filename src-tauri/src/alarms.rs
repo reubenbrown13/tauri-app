@@ -1,11 +1,11 @@
-use std::{ fs::File, thread::JoinHandle, io::BufReader, sync::Arc};
-use rodio::{OutputStreamBuilder, Sink, Source, Decoder};
+use rodio::{Decoder, OutputStreamBuilder, Sink, Source};
+use std::{fs::File, sync::Arc, thread::JoinHandle};
 use tauri::State;
 
 #[derive(Clone)]
 pub struct AudioState {
     pub thread_handle: Arc<std::sync::Mutex<Option<JoinHandle<()>>>>,
-    pub sink: Arc<std::sync::Mutex<Option<Sink>>>
+    pub sink: Arc<std::sync::Mutex<Option<Sink>>>,
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -14,10 +14,17 @@ pub fn play_ringtone(path: String, state: State<AudioState>) -> Result<(), Strin
     let thread_handle_arc = state.thread_handle.clone();
 
     *thread_handle_arc.lock().unwrap() = Some(std::thread::spawn(move || {
-        let stream_handle = OutputStreamBuilder::open_default_stream().expect("open default audio stream");
+        let stream_handle =
+            OutputStreamBuilder::open_default_stream().expect("open default audio stream");
         let sink = Sink::connect_new(&stream_handle.mixer());
-        let file =  BufReader::new(File::open(&path).unwrap());
-        let source = Decoder::new(file).unwrap();
+        let file = match File::open(&path) {
+            Err(why) => panic!("count't open {}: {}", &path, why),
+            Ok(file) => file,
+        };
+        let source = match Decoder::try_from(file) {
+            Err(why) => panic!("Decoder failed {}", why),
+            Ok(source) => source,
+        };
         sink.append(source.repeat_infinite());
 
         {
@@ -54,7 +61,7 @@ pub fn stop_ringtone(state: State<AudioState>) -> Result<(), String> {
 #[tauri::command(rename_all = "snake_case")]
 pub fn set_volume(volume: f32, state: State<AudioState>) -> Result<(), String> {
     let sink_arc = state.sink.clone();
-    
+
     if let Some(ref sink) = *sink_arc.lock().unwrap() {
         sink.set_volume(volume);
     }

@@ -1,24 +1,36 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 use inputbot::KeybdKey;
-use std::sync::{atomic::AtomicBool, Arc};
-use std::path::{ PathBuf, Path };
-use std::io::{ Read, Write };
-use std::fs::{ self, File };
-use zip::write::{ZipWriter, SimpleFileOptions};
+use std::fs::{self, File};
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, atomic::AtomicBool};
 use zip::ZipArchive;
+use zip::write::{SimpleFileOptions, ZipWriter};
 mod auto_clicker;
-use auto_clicker::{ change_trigger_key, start_clicker, innit_clicker, stop_clicker, update_clicker_state, close_clicker, ClickType, ClickerState, MouseButton };
+use auto_clicker::{
+    ClickType, ClickerState, MouseButton, change_trigger_key, close_clicker, innit_clicker,
+    start_clicker, stop_clicker, update_clicker_state,
+};
 mod alarms;
-use alarms::{ stop_ringtone, play_ringtone, set_volume, AudioState };
+use alarms::{AudioState, play_ringtone, set_volume, stop_ringtone};
 
-fn add_file_to_zip(zip: &mut ZipWriter<File>, file_path: &Path, base_path: &Path) -> Result<(), String> {
+fn add_file_to_zip(
+    zip: &mut ZipWriter<File>,
+    file_path: &Path,
+    base_path: &Path,
+) -> Result<(), String> {
     let mut file = File::open(file_path).map_err(|e| e.to_string())?;
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer).map_err(|e| e.to_string())?;
 
-    let relative_path = file_path.strip_prefix(base_path).map_err(|e| e.to_string())?.to_string_lossy().into_owned();
+    let relative_path = file_path
+        .strip_prefix(base_path)
+        .map_err(|e| e.to_string())?
+        .to_string_lossy()
+        .into_owned();
 
-    zip.start_file(relative_path, SimpleFileOptions::default()).map_err(|e| e.to_string())?;
+    zip.start_file(relative_path, SimpleFileOptions::default())
+        .map_err(|e| e.to_string())?;
     zip.write_all(&buffer).map_err(|e| e.to_string())?;
 
     Ok(())
@@ -96,10 +108,22 @@ pub fn run() {
 
     let audio_state = AudioState {
         thread_handle: Arc::new(std::sync::Mutex::new(None)),
-        sink: Arc::new(std::sync::Mutex::new(None))
+        sink: Arc::new(std::sync::Mutex::new(None)),
     };
 
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(tauri_plugin_log::log::LevelFilter::Info)
+                .build(),
+        )
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(tauri_plugin_log::log::LevelFilter::Info)
+                .build(),
+        )
+        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_process::init())
         .manage(clicker_state)
         .manage(audio_state)
         .invoke_handler(tauri::generate_handler![

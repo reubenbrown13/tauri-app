@@ -4,9 +4,12 @@ import { SettingsIcon } from "../../assets/SettingsIcon"
 import genUid from "light-uid"
 import { FrequencyInput } from "./FrequencyInput"
 import { AudioInput } from "./AudioInput"
-import { BaseDirectory, copyFile, remove } from "@tauri-apps/plugin-fs"
-import * as path from '@tauri-apps/api/path'
 import { invoke } from "@tauri-apps/api/core"
+import { BaseDirectory, copyFile, remove } from "@tauri-apps/plugin-fs"
+import { message } from '@tauri-apps/plugin-dialog';
+import { debug } from '@tauri-apps/plugin-log';
+import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification"
+import * as path from '@tauri-apps/api/path'
 import Database from "@tauri-apps/plugin-sql"
 
 export function Alarms({ clockId, updateData, storedAlarms }: { clockId: string, storedAlarms?: Alarm[], updateData: (newData: Partial<{ timerRingtone?: string, alarms?: Alarm[] }>) => void }) {
@@ -34,6 +37,13 @@ export function Alarms({ clockId, updateData, storedAlarms }: { clockId: string,
     const [ ringingAlarm, setRingingAlarm ] = useState<Alarm | null>(null)
     const ringingRingtone = useRef(new Audio())
     let db: Database
+
+    const checkPermission = async () => {
+        if (!(await isPermissionGranted())) {
+            return (await requestPermission()) === 'granted'
+        }
+        return true
+    }
 
     const resetStateValues = () => {
         setNewAlarmHours("06")
@@ -64,14 +74,13 @@ export function Alarms({ clockId, updateData, storedAlarms }: { clockId: string,
         
         let filePath
         if(newAlarmFilePath === 'default' || newAlarmFilePath === "") {
-           filePath = 'alarm-default.mp3'
+           filePath = await path.join(BaseDirectory.AppData.toString(), 'alarm-default.mp3')
         } else {
-            const name = newAlarmFilePath.split("\\").pop()
-            if(!name) return
-
-            await copyFile(newAlarmFilePath, name, { toPathBaseDir: BaseDirectory.AppData })
-            filePath = name
+            filePath = newAlarmFilePath
         }
+        //await message(`File not found${filePath}`, { title: 'Tauri', kind: 'error' });
+        //await debug(`File not found${filePath}`);
+        
 
         const newAlarm: Alarm = { id: genUid(), clockId: clockId, label: newLabel, time: newTime, postponedTime: null, active: false, frequency: newAlarmFrequency, ringtone: filePath }
         setAlarms(prev => [...prev, newAlarm])
@@ -87,16 +96,12 @@ export function Alarms({ clockId, updateData, storedAlarms }: { clockId: string,
 
         let filePath
         if(editAlarmFilePath === 'default' || editAlarmFilePath === "") {
-           filePath = 'alarm-default.mp3'
+           filePath = await path.join(BaseDirectory.AppData.toString(), 'alarm-default.mp3')
         } else {
-            const name = editAlarmFilePath.split("\\").pop()
-            if(!name) return
-            
-            removeFile(alarm)
-
-            await copyFile(editAlarmFilePath, name, { toPathBaseDir: BaseDirectory.AppData })
-            filePath = name
+            filePath = editAlarmFilePath
         }
+        //await message(`File not found${filePath}`, { title: 'Tauri', kind: 'error' });
+        //await debug(`File not found${filePath}`);
 
         const newAlarm = { label: newLabel, time: newTime, frequency: alarmFrequency, ringtone: filePath }
         setAlarms(prev => prev.map(a => a.id === alarm.id ? { ...alarm, ...newAlarm } : alarm))
@@ -136,6 +141,7 @@ export function Alarms({ clockId, updateData, storedAlarms }: { clockId: string,
 
             const postponedMatch = postponedTimeWithSeconds  === currentTime
             const originalMatch = alarm.active && alarmTimeWithSeconds === currentTime
+
             return postponedMatch || originalMatch
         })
 
@@ -149,6 +155,9 @@ export function Alarms({ clockId, updateData, storedAlarms }: { clockId: string,
         setAlarms(alarms.map(alarm => alarm.id === activeAlarm.id ? { ...alarm, postponedTime: null } : alarm )) 
         const filePath = await path.join(await path.appDataDir(), activeAlarm.ringtone)
         await invoke("play_ringtone", { path: filePath })
+        if ((await checkPermission()) ) {
+            sendNotification({ title: 'Alarm Sounding', body: 'Beep Beep'});
+        }
     }
 
     useEffect(() => {

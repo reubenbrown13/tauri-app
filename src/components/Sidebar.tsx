@@ -13,6 +13,7 @@ import { ClearIcon } from "../assets/SidebarIcons/ClearIcon"
 import { Clock } from "./Clock/Clock"
 import { ClockIcon } from "../assets/SidebarIcons/ClockIcon"
 import { invoke } from "@tauri-apps/api/core"
+import { exit } from '@tauri-apps/plugin-process';
 import * as path from '@tauri-apps/api/path'
 
 export function Sidebar() {
@@ -88,6 +89,10 @@ export function Sidebar() {
         }
     }
 
+    const handleQuit = async () => {
+        await exit(0);
+    }
+
     return <>   
         <div className="sidebar-icon" onClick={(e) => { 
             e.stopPropagation()
@@ -102,6 +107,7 @@ export function Sidebar() {
             <button onClick={handleNewClock}><span><ClockIcon /></span>New Clock</button>
             <button onClick={handleNewAutoClicker}><span><MouseIcon /></span>Auto Clicker</button>
             <button onClick={handleClear} className="clear"><span><ClearIcon /></span>Clear grid</button>
+            <button onClick={handleQuit} className="quit"><span>X</span>Exit</button>
             <div className="import-export">
                 <button onClick={handleExport}><span><ExportIcon /></span>Export</button>
                 <button onClick={handleImport}><span><ImportIcon /></span>Import</button>
